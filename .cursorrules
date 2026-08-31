@@ -1,0 +1,7 @@
+# BranchLock Multi-Agent Workspace Rules
+
+When working in this codebase:
+1. **Always Claim Before Editing**: Before modifying, refactoring, or creating any files, invoke the `claim_files` MCP tool with the target file paths, your agentId (e.g. "Cursor", "Claude"), and a brief task summary.
+2. **Check for Conflicts**: If `claim_files` returns a collision conflict because another agent holds the lock, do NOT overwrite the file. Inform the user and suggest an alternative file or wait.
+3. **Broadcast Major Decisions**: When changing shared architectures, schemas, or interfaces, invoke `broadcast_context` to notify other agents.
+4. **Release When Complete**: When your task on the claimed files is finished, call `release_files` with `completed: true`.
