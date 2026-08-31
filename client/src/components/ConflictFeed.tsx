@@ -110,9 +110,10 @@ interface ConflictFeedProps {
 }
 
 export function ConflictFeed({ events, showHeartbeats = false }: ConflictFeedProps) {
-  const filtered = showHeartbeats
+  const filtered = (showHeartbeats
     ? events
-    : events.filter((e) => e.type !== 'heartbeat');
+    : events.filter((e) => e.type !== 'heartbeat')
+  ).filter((e) => !e.data.message || !String(e.data.message).toLowerCase().includes('connected'));
 
   if (filtered.length === 0) {
     return (

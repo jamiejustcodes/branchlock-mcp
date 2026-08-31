@@ -22,15 +22,6 @@ export function initWebSocket(server: Server): WebSocketServer {
     ws.on('error', (err) => {
       log(`[ws] client error: ${err.message}`);
     });
-
-    // Send a welcome event so the client knows it's connected
-    const welcome: WSEvent = {
-      id: uuid(),
-      type: 'lock_claimed',
-      data: { message: 'Connected to BranchLock daemon' },
-      timestamp: new Date().toISOString(),
-    };
-    ws.send(JSON.stringify(welcome));
   });
 
   log('[ws] WebSocket server ready on /api/events');
