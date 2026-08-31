@@ -9,8 +9,11 @@ import {
   broadcastContext,
   getAuditLogs,
   normalizePath,
+  storeSymbols,
+  getLockedFileSymbols,
 } from './db.js';
 import { broadcast } from './ws.js';
+import { extractSymbols, detectSymbolOverlaps } from './symbols.js';
 import type {
   ClaimRequest,
   ReleaseRequest,
@@ -51,7 +54,44 @@ router.post('/api/locks/claim', (req: Request, res: Response) => {
 
     const result = claimFiles(body);
 
-    if (result.success) {
+    if (result.success && result.claimed) {
+      // Phase 2: Extract and store symbols for each claimed file
+      for (const lock of result.claimed) {
+        try {
+          const symbols = extractSymbols(lock.file_path);
+          if (symbols.length > 0) {
+            storeSymbols(lock.id, lock.file_path, symbols);
+          }
+        } catch (err) {
+          // Symbol extraction is best-effort, don't fail the claim
+          console.warn(`[routes] symbol extraction failed for ${lock.file_path}:`, err);
+        }
+      }
+
+      // Phase 2: Check for symbol overlaps with other agents' locked files
+      const lockedFileInfo = getLockedFileSymbols(body.agentId);
+      const warnings = [];
+      for (const lock of result.claimed) {
+        try {
+          const fileWarnings = detectSymbolOverlaps(
+            lock.file_path,
+            body.agentId,
+            lockedFileInfo
+          );
+          warnings.push(...fileWarnings);
+        } catch {
+          // Best-effort
+        }
+      }
+
+      if (warnings.length > 0) {
+        result.symbolWarnings = warnings;
+        broadcast('symbol_warning', {
+          agentId: body.agentId,
+          warnings,
+        });
+      }
+
       broadcast('lock_claimed', {
         agentId: body.agentId,
         files: body.paths.map(normalizePath),

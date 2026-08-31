@@ -14,6 +14,7 @@ import type {
   BroadcastRequest,
   BroadcastResponse,
   CheckLocksResponse,
+  ExtractedSymbol,
 } from '@branchlock/shared';
 import { DEFAULT_TTL_MINUTES, DB_FILE } from '@branchlock/shared';
 
@@ -69,6 +70,20 @@ export function initDatabase(dbPath?: string): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_locks_status ON locks(status);
+
+    CREATE TABLE IF NOT EXISTS lock_symbols (
+      id TEXT PRIMARY KEY,
+      lock_id TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      symbol_name TEXT NOT NULL,
+      symbol_kind TEXT NOT NULL,
+      exported INTEGER NOT NULL DEFAULT 1,
+      line INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (lock_id) REFERENCES locks(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_lock_symbols_lock_id ON lock_symbols(lock_id);
+    CREATE INDEX IF NOT EXISTS idx_lock_symbols_file_path ON lock_symbols(file_path);
   `);
 
   return db;
@@ -350,4 +365,70 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
   }
+}
+
+// ─── Symbol Storage (Phase 2) ────────────────────────────────
+
+/**
+ * Store extracted symbols for a lock. Called after a successful claim.
+ */
+export function storeSymbols(lockId: string, filePath: string, symbols: ExtractedSymbol[]): void {
+  const d = getDb();
+  const insertStmt = d.prepare(`
+    INSERT INTO lock_symbols (id, lock_id, file_path, symbol_name, symbol_kind, exported, line)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  d.transaction(() => {
+    for (const sym of symbols) {
+      insertStmt.run(uuid(), lockId, filePath, sym.name, sym.kind, sym.exported ? 1 : 0, sym.line);
+    }
+  })();
+}
+
+/**
+ * Get all symbols from files currently locked by other agents.
+ * Used for overlap detection when a new file is claimed.
+ */
+export function getLockedFileSymbols(excludeAgent: string): Array<{
+  filePath: string;
+  agentId: string;
+  symbols: ExtractedSymbol[];
+}> {
+  const d = getDb();
+  const now = new Date().toISOString();
+
+  // Get active locks by other agents
+  const locks = d.prepare(`
+    SELECT id, file_path, agent_id FROM locks
+    WHERE status = 'active' AND expires_at > ? AND agent_id != ?
+  `).all(now, excludeAgent) as Array<{ id: string; file_path: string; agent_id: string }>;
+
+  const result: Array<{ filePath: string; agentId: string; symbols: ExtractedSymbol[] }> = [];
+
+  const getSymStmt = d.prepare(`
+    SELECT symbol_name, symbol_kind, exported, line FROM lock_symbols WHERE lock_id = ?
+  `);
+
+  for (const lock of locks) {
+    const rows = getSymStmt.all(lock.id) as Array<{
+      symbol_name: string;
+      symbol_kind: string;
+      exported: number;
+      line: number;
+    }>;
+
+    result.push({
+      filePath: lock.file_path,
+      agentId: lock.agent_id,
+      symbols: rows.map((r) => ({
+        name: r.symbol_name,
+        kind: r.symbol_kind as ExtractedSymbol['kind'],
+        exported: r.exported === 1,
+        line: r.line,
+      })),
+    });
+  }
+
+  return result;
 }
