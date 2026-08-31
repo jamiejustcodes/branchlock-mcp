@@ -5,6 +5,13 @@ Multi-Agent Workspace Lock and Semantic Collision Detector
 BranchLock MCP prevents AI coding assistants (Claude Code, Cursor, Codex, OpenCode, Windsurf) from causing merge collisions and conflicting overwrites when working concurrently on the same repository.
 
 
+## Live Demonstration
+
+https://github.com/jamiejustcodes/branchlock-mcp/raw/master/video/demo.mp4
+
+Live demonstration of workspace files being locked in real-time so that only authorized agents (such as Cursor) can modify them, preventing overlapping code edits and merge collisions.
+
+
 ## The Problem
 
 When multiple AI coding assistants work on a shared codebase simultaneously, they have zero awareness of each other's edits. One agent might refactor an authentication module while another rewrites the session handler, leading to:
