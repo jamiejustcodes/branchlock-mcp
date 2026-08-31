@@ -57,12 +57,6 @@ export function initDatabase(dbPath?: string): Database.Database {
       issue_id TEXT DEFAULT NULL
     );
 
-    try {
-      db.exec("ALTER TABLE locks ADD COLUMN issue_id TEXT DEFAULT NULL;");
-    } catch {
-      // column already exists in schema
-    }
-
     -- Partial unique index: only one active lock per file path at a time
     CREATE UNIQUE INDEX IF NOT EXISTS idx_active_file_lock
     ON locks(file_path) WHERE status = 'active';
