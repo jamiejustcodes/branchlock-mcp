@@ -59,7 +59,10 @@ body {
 }
 
 .glass-card-hover {
-  @apply glass-card transition-all duration-300;
+  @apply bg-surface-1/80 backdrop-blur-xl border border-border-dim rounded-2xl transition-all duration-300;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .glass-card-hover:hover {
