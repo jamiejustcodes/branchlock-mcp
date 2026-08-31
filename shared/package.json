@@ -1,0 +1,11 @@
+{
+  "name": "@branchlock/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/types.js",
+  "types": "./dist/types.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  }
+}
