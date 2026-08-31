@@ -87,6 +87,13 @@ export function initDatabase(dbPath?: string): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_lock_symbols_file_path ON lock_symbols(file_path);
   `);
 
+  // Auto-migrate issue_id column if table was created before Phase 3
+  try {
+    db.exec("ALTER TABLE locks ADD COLUMN issue_id TEXT DEFAULT NULL;");
+  } catch {
+    // Column already exists
+  }
+
   return db;
 }
 

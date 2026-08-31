@@ -88,7 +88,9 @@ rl.on('line', async (line) => {
           ttlMinutes: 15,
         });
 
-        if (res.success) {
+        if (res.error) {
+          console.log(`\x1b[31m❌ Server Error:\x1b[0m ${res.error}`);
+        } else if (res.success) {
           console.log(`\x1b[32m✅ SUCCESS: You locked "${filePath}" for 15 minutes.\x1b[0m`);
           console.log(`   Task: "${summary}"`);
           console.log(`   (Watch your card appear at http://localhost:5173)`);
