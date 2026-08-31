@@ -7,7 +7,7 @@ BranchLock MCP prevents AI coding assistants (Claude Code, Cursor, Codex, OpenCo
 
 ## Live Demonstration
 
-https://github.com/jamiejustcodes/branchlock-mcp/raw/master/video/demo.mp4
+<video src="https://github.com/jamiejustcodes/branchlock-mcp/raw/master/video/demo.mp4" controls="controls" width="100%"></video>
 
 Live demonstration of workspace files being locked in real-time so that only authorized agents (such as Cursor) can modify them, preventing overlapping code edits and merge collisions.
 
