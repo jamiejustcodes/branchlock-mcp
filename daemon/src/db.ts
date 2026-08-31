@@ -403,6 +403,15 @@ export function closeDatabase(): void {
   }
 }
 
+/**
+ * Force-release all active locks (useful for demo reset).
+ */
+export function resetAllLocks(): number {
+  const d = getDb();
+  const result = d.prepare("UPDATE locks SET status = 'released' WHERE status = 'active'").run();
+  return result.changes;
+}
+
 // ─── Symbol Storage (Phase 2) ────────────────────────────────
 
 /**

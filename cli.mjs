@@ -76,8 +76,9 @@ rl.on('line', async (line) => {
           console.log('\x1b[31mUsage: claim <filepath> [taskSummary]\x1b[0m');
           break;
         }
-        const filePath = args[0];
-        const summary = args.slice(1).join(' ') || `Editing ${filePath}`;
+        const filePath = args[0].replace(/^["']|["']$/g, '').trim();
+        const rawSummary = args.slice(1).join(' ').trim();
+        const summary = rawSummary.replace(/^["']|["']$/g, '') || `Editing ${filePath}`;
 
         console.log(`⏳ Attempting to claim lock on "${filePath}"...`);
         const res = await request('POST', '/api/locks/claim', {
@@ -107,7 +108,7 @@ rl.on('line', async (line) => {
           console.log('\x1b[31mUsage: release <filepath>\x1b[0m');
           break;
         }
-        const filePath = args[0];
+        const filePath = args[0].replace(/^["']|["']$/g, '').trim();
         const res = await request('POST', '/api/locks/release', {
           paths: [filePath],
           agentId,
@@ -119,6 +120,13 @@ rl.on('line', async (line) => {
         } else {
           console.log(`\x1b[33m⚠️ You don't own an active lock on "${filePath}".\x1b[0m`);
         }
+        break;
+      }
+
+      case 'reset':
+      case 'clear-locks': {
+        const res = await request('POST', '/api/locks/reset', {});
+        console.log(`\x1b[32m🧹 RESET COMPLETE: Released ${res.releasedCount || 0} active lock(s). All files are now free.\x1b[0m`);
         break;
       }
 

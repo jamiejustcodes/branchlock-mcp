@@ -11,6 +11,7 @@ import {
   normalizePath,
   storeSymbols,
   getLockedFileSymbols,
+  resetAllLocks,
 } from './db.js';
 import { broadcast } from './ws.js';
 import { extractSymbols, detectSymbolOverlaps } from './symbols.js';
@@ -174,6 +175,18 @@ router.get('/api/locks', (req: Request, res: Response) => {
     res.json(result);
   } catch (err) {
     console.error('[routes] check locks error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── Reset All Locks (Demo / Testing helper) ──────────────────
+router.post('/api/locks/reset', (_req: Request, res: Response) => {
+  try {
+    const count = resetAllLocks();
+    broadcast('ttl_expired', { count, reason: 'manual_reset' });
+    res.json({ success: true, releasedCount: count });
+  } catch (err) {
+    console.error('[routes] reset locks error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
