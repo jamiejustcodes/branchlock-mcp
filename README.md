@@ -131,7 +131,7 @@ Or add to your project's `.mcp.json` or global `~/.claude.json`:
   "mcpServers": {
     "branchlock": {
       "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+      "args": ["/path/to/branchlock-mcp/adapter/dist/index.js"]
     }
   }
 }
@@ -141,7 +141,7 @@ Or add to your project's `.mcp.json` or global `~/.claude.json`:
 In Cursor Settings > Features > MCP > Add New MCP Server:
 * Name: `branchlock`
 * Type: `command`
-* Command: `node E:/MCPPROJECT/adapter/dist/index.js`
+* Command: `node /path/to/branchlock-mcp/adapter/dist/index.js`
 
 Or add to `.cursor/mcp.json` in your repository root:
 ```json
@@ -149,7 +149,7 @@ Or add to `.cursor/mcp.json` in your repository root:
   "mcpServers": {
     "branchlock": {
       "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+      "args": ["./adapter/dist/index.js"]
     }
   }
 }
@@ -162,7 +162,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
   "mcpServers": {
     "branchlock": {
       "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+      "args": ["/path/to/branchlock-mcp/adapter/dist/index.js"]
     }
   }
 }
@@ -175,7 +175,7 @@ Any client supporting the Model Context Protocol stdio transport connects using:
   "mcpServers": {
     "branchlock": {
       "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+      "args": ["/path/to/branchlock-mcp/adapter/dist/index.js"]
     }
   }
 }

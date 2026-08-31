@@ -2,7 +2,7 @@
   "mcpServers": {
     "branchlock": {
       "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+      "args": ["./adapter/dist/index.js"]
     }
   }
 }
