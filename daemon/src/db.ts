@@ -53,8 +53,15 @@ export function initDatabase(dbPath?: string): Database.Database {
       claimed_at TEXT NOT NULL,
       expires_at TEXT NOT NULL,
       last_heartbeat_at TEXT NOT NULL,
-      status TEXT NOT NULL CHECK(status IN ('active', 'released')) DEFAULT 'active'
+      status TEXT NOT NULL CHECK(status IN ('active', 'released')) DEFAULT 'active',
+      issue_id TEXT DEFAULT NULL
     );
+
+    try {
+      db.exec("ALTER TABLE locks ADD COLUMN issue_id TEXT DEFAULT NULL;");
+    } catch {
+      // column already exists in schema
+    }
 
     -- Partial unique index: only one active lock per file path at a time
     CREATE UNIQUE INDEX IF NOT EXISTS idx_active_file_lock
@@ -152,11 +159,12 @@ export function claimFiles(req: ClaimRequest): ClaimResponse {
 
     // All clear — claim all paths
     const insertStmt = d.prepare(`
-      INSERT INTO locks (id, file_path, agent_id, task_summary, claimed_at, expires_at, last_heartbeat_at, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+      INSERT INTO locks (id, file_path, agent_id, task_summary, issue_id, claimed_at, expires_at, last_heartbeat_at, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
       ON CONFLICT(file_path) WHERE status = 'active' DO UPDATE SET
         agent_id = excluded.agent_id,
         task_summary = excluded.task_summary,
+        issue_id = excluded.issue_id,
         claimed_at = excluded.claimed_at,
         expires_at = excluded.expires_at,
         last_heartbeat_at = excluded.last_heartbeat_at
@@ -166,12 +174,13 @@ export function claimFiles(req: ClaimRequest): ClaimResponse {
 
     for (const fp of normalized) {
       const lockId = uuid();
-      insertStmt.run(lockId, fp, req.agentId, req.taskSummary, now, expiresAt, now);
+      insertStmt.run(lockId, fp, req.agentId, req.taskSummary, req.issueId ?? null, now, expiresAt, now);
       claimed.push({
         id: lockId,
         file_path: fp,
         agent_id: req.agentId,
         task_summary: req.taskSummary,
+        issue_id: req.issueId,
         claimed_at: now,
         expires_at: expiresAt,
         last_heartbeat_at: now,
@@ -183,7 +192,7 @@ export function claimFiles(req: ClaimRequest): ClaimResponse {
     d.prepare(`
       INSERT INTO audit_log (id, timestamp, agent_id, action, details)
       VALUES (?, ?, ?, 'CLAIM', ?)
-    `).run(uuid(), now, req.agentId, JSON.stringify({ files: normalized, ttlMinutes: ttl }));
+    `).run(uuid(), now, req.agentId, JSON.stringify({ files: normalized, ttlMinutes: ttl, issueId: req.issueId }));
 
     return { success: true, claimed } as ClaimResponse;
   })();
@@ -194,13 +203,15 @@ export function claimFiles(req: ClaimRequest): ClaimResponse {
 /**
  * Release locks owned by a specific agent on the given file paths.
  */
-export function releaseFiles(req: ReleaseRequest): ReleaseResponse {
+export function releaseFiles(req: ReleaseRequest): ReleaseResponse & { linkedIssues?: string[]; broadcastSummary?: string } {
   const d = getDb();
   const now = new Date().toISOString();
   const normalized = req.paths.map(normalizePath);
 
   const released: string[] = [];
   const skipped: string[] = [];
+  let linkedIssues: string[] = [];
+  let broadcastSummary = '';
 
   const releaseStmt = d.prepare(`
     UPDATE locks SET status = 'released'
@@ -208,6 +219,33 @@ export function releaseFiles(req: ReleaseRequest): ReleaseResponse {
   `);
 
   d.transaction(() => {
+    // If completed is true, check for linked issue IDs before releasing
+    if (req.completed) {
+      const getIssuesStmt = d.prepare(`
+        SELECT DISTINCT issue_id FROM locks
+        WHERE file_path = ? AND agent_id = ? AND status = 'active' AND issue_id IS NOT NULL
+      `);
+      for (const fp of normalized) {
+        const row = getIssuesStmt.get(fp, req.agentId) as { issue_id: string } | undefined;
+        if (row?.issue_id && !linkedIssues.includes(row.issue_id)) {
+          linkedIssues.push(row.issue_id);
+        }
+      }
+
+      // Fetch recent broadcasts to form the context summary
+      const broadcastRows = d.prepare(`
+        SELECT details FROM audit_log
+        WHERE agent_id = ? AND action = 'BROADCAST'
+        ORDER BY timestamp DESC LIMIT 3
+      `).all(req.agentId) as Array<{ details: string }>;
+
+      if (broadcastRows.length > 0) {
+        broadcastSummary = broadcastRows.map((b) => b.details).join('\n\n');
+      } else {
+        broadcastSummary = `Completed work on files: ${normalized.map((p) => path.basename(p)).join(', ')}`;
+      }
+    }
+
     for (const fp of normalized) {
       const result = releaseStmt.run(fp, req.agentId);
       if (result.changes > 0) {
@@ -225,12 +263,16 @@ export function releaseFiles(req: ReleaseRequest): ReleaseResponse {
         uuid(),
         now,
         req.agentId,
-        JSON.stringify({ files: released, completed: req.completed ?? false })
+        JSON.stringify({
+          files: released,
+          completed: req.completed ?? false,
+          linkedIssues,
+        })
       );
     }
   })();
 
-  return { success: true, released, skipped };
+  return { success: true, released, skipped, linkedIssues, broadcastSummary };
 }
 
 /**

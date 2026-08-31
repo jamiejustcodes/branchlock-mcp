@@ -14,6 +14,7 @@ import {
 } from './db.js';
 import { broadcast } from './ws.js';
 import { extractSymbols, detectSymbolOverlaps } from './symbols.js';
+import { postCompletionComment } from './webhooks.js';
 import type {
   ClaimRequest,
   ReleaseRequest,
@@ -135,7 +136,28 @@ router.post('/api/locks/release', (req: Request, res: Response) => {
       });
     }
 
-    res.json(result);
+    // Phase 3: If task completed and linked to issues, post completion summary comments
+    if (body.completed && result.linkedIssues && result.linkedIssues.length > 0) {
+      for (const issueId of result.linkedIssues) {
+        postCompletionComment(issueId, result.broadcastSummary || 'Task completed.')
+          .then((res) => {
+            broadcast('broadcast', {
+              agentId: body.agentId,
+              decisionNotes: `Task complete comment for issue ${issueId}: ${res.message}`,
+              issueId,
+            });
+          })
+          .catch((err) => {
+            console.error(`[routes] failed to post completion comment for ${issueId}:`, err);
+          });
+      }
+    }
+
+    res.json({
+      success: result.success,
+      released: result.released,
+      skipped: result.skipped,
+    });
   } catch (err) {
     console.error('[routes] release error:', err);
     res.status(500).json({ error: 'Internal server error' });

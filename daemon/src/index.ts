@@ -7,6 +7,7 @@ import { initDatabase, closeDatabase } from './db.js';
 import { initWebSocket, closeWebSocket } from './ws.js';
 import { startSweep, stopSweep } from './sweep.js';
 import routes from './routes.js';
+import webhooks from './webhooks.js';
 import { DAEMON_PORT, PID_DIR, PID_FILE, DB_FILE } from '@branchlock/shared';
 
 // ─── PID File Management ─────────────────────────────────────
@@ -61,6 +62,7 @@ function main(): void {
     origin: true,
     credentials: true,
   }));
+  app.use(webhooks);
   app.use(routes);
 
   // Create HTTP server and attach WebSocket
