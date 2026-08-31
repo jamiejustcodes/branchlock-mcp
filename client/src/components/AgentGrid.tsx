@@ -78,20 +78,21 @@ export function AgentGrid({ refreshTrigger }: { refreshTrigger: number }) {
         const data = await res.json();
         const locks: LockData[] = data.locks || [];
 
-        // Group by agent
-        const map = new Map<string, LockData[]>();
+        // Group by agent and deduplicate by canonical file_path
+        const map = new Map<string, Map<string, LockData>>();
         for (const lock of locks) {
-          const existing = map.get(lock.agent_id) || [];
-          existing.push(lock);
-          map.set(lock.agent_id, existing);
+          if (!map.has(lock.agent_id)) {
+            map.set(lock.agent_id, new Map());
+          }
+          map.get(lock.agent_id)!.set(lock.file_path, lock);
         }
 
         const agentGroups: AgentGroup[] = Array.from(map.entries()).map(
-          ([agentId, agentLocks]) => {
+          ([agentId, lockMap]) => {
             const idx = getAgentColorIndex(agentId);
             return {
               agentId,
-              locks: agentLocks,
+              locks: Array.from(lockMap.values()),
               color: AGENT_COLORS[idx].color,
               glow: AGENT_COLORS[idx].glow,
             };

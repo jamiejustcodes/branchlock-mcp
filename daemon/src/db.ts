@@ -21,9 +21,17 @@ import { DEFAULT_TTL_MINUTES, DB_FILE } from '@branchlock/shared';
 let db: Database.Database;
 
 // ─── Path Normalization ───────────────────────────────────────
-// Resolve to absolute, forward slashes, lowercase drive letter on Windows
+const workspaceRoot = process.env.BRANCHLOCK_ROOT || (
+  process.cwd().replace(/\\/g, '/').endsWith('/daemon')
+    ? path.resolve(process.cwd(), '..')
+    : process.cwd()
+);
+
+// Resolve to absolute canonical workspace path, forward slashes, lowercase drive letter on Windows
 export function normalizePath(filePath: string): string {
-  let resolved = path.resolve(filePath);
+  let resolved = path.isAbsolute(filePath)
+    ? path.resolve(filePath)
+    : path.resolve(workspaceRoot, filePath);
   // Normalize separators to forward slashes
   resolved = resolved.replace(/\\/g, '/');
   // Lowercase drive letter on Windows (C: → c:)

@@ -271,7 +271,7 @@ router.post('/api/simulate', (req: Request, res: Response) => {
     switch (scenario) {
       case 'claim': {
         const agentId = body.agentId || `sim-agent-${uuid().slice(0, 8)}`;
-        const filePath = body.filePath || `/project/src/sim-${uuid().slice(0, 6)}.ts`;
+        const filePath = body.filePath || `src/sim-${uuid().slice(0, 6)}.ts`;
         const result = claimFiles({
           paths: [filePath],
           agentId,
@@ -289,7 +289,7 @@ router.post('/api/simulate', (req: Request, res: Response) => {
 
       case 'conflict': {
         // Create a lock first, then try to claim with a different agent
-        const filePath = body.filePath || '/project/src/auth.ts';
+        const filePath = body.filePath || 'src/auth.ts';
         const agent1 = 'Claude-Code-01';
         const agent2 = body.agentId || 'Cursor-Dev';
 
