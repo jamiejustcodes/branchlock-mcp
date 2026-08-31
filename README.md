@@ -2,7 +2,7 @@
 
 **Multi-Agent Workspace Lock & Semantic Collision Detector**
 
-BranchLock MCP prevents AI coding agents (Claude Code, Cursor, Codex, OpenCode) from causing silent merge collisions and conflicting overwrites when working simultaneously on the same codebase.
+BranchLock MCP prevents AI coding agents (**Claude Code**, **Cursor**, **Codex**, **OpenCode**, **Windsurf**) from causing silent merge collisions and conflicting overwrites when working simultaneously on the same codebase.
 
 ---
 
@@ -18,7 +18,7 @@ When multiple AI coding assistants work on a shared repository simultaneously, t
 
 ## 🏗️ Architecture & Daemon / Adapter Split
 
-Standard MCP stdio servers run as independent child processes for each connected AI client. If two agents (e.g. Claude Desktop and Cursor) both spawn MCP servers that try to bind an HTTP/WebSocket port, the second agent crashes with `EADDRINUSE`, breaking multi-agent coordination.
+Standard MCP stdio servers run as independent child processes for each connected AI client. If two agents (e.g. Claude Code and Cursor) both spawn MCP servers that try to bind an HTTP/WebSocket port, the second agent crashes with `EADDRINUSE`, breaking multi-agent coordination.
 
 BranchLock solves this with a two-tier architecture:
 
@@ -88,7 +88,7 @@ graph TB
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Connecting Your AI Agents
 
 ### 1. Installation
 
@@ -101,46 +101,128 @@ npm install
 npm run build
 ```
 
-### 2. Configure Your AI Agents
+---
 
-#### Claude Desktop (`claude_desktop_config.json`)
+### 2. Configure Your Agent
 
-Add BranchLock to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
-
-```json
-{
-  "mcpServers": {
-    "branchlock": {
-      "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
-    }
-  }
-}
-```
-
-#### Cursor (`.cursor/mcp.json` or Cursor Settings)
-
-```json
-{
-  "mcpServers": {
-    "branchlock": {
-      "command": "node",
-      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
-    }
-  }
-}
-```
-
-### 3. Running the Dashboard (Optional / Dev)
-
-Start the local development stack:
-
+#### 🤖 Claude Code (CLI)
+Run this single command in your terminal:
 ```bash
-npm run dev
+claude mcp add branchlock node /path/to/branchlock-mcp/adapter/dist/index.js
+```
+*(Or add to your project's `.mcp.json` or global `~/.claude.json`)*:
+```json
+{
+  "mcpServers": {
+    "branchlock": {
+      "command": "node",
+      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+    }
+  }
+}
 ```
 
-- **Daemon API & WS**: `http://localhost:4000`
-- **Live Dashboard**: `http://localhost:5173`
+#### 💻 Cursor IDE
+In **Cursor Settings ➜ Features ➜ MCP ➜ Add New MCP Server**:
+- **Name:** `branchlock`
+- **Type:** `command`
+- **Command:** `node E:/MCPPROJECT/adapter/dist/index.js`
+
+*(Or add to `.cursor/mcp.json` in your repository root)*:
+```json
+{
+  "mcpServers": {
+    "branchlock": {
+      "command": "node",
+      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+    }
+  }
+}
+```
+
+#### 🖥️ Claude Desktop
+Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+```json
+{
+  "mcpServers": {
+    "branchlock": {
+      "command": "node",
+      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+    }
+  }
+}
+```
+
+#### ⚡ OpenAI Codex / OpenCode / Windsurf / Cline / Roo Code
+Any tool supporting the standard Model Context Protocol stdio transport can connect with:
+```json
+{
+  "mcpServers": {
+    "branchlock": {
+      "command": "node",
+      "args": ["E:/MCPPROJECT/adapter/dist/index.js"]
+    }
+  }
+}
+```
+
+---
+
+## 🎬 Live Interactive Demo & Testing
+
+You can test collision detection immediately using the included interactive tools:
+
+### Option A: The 2-Terminal Interactive Demo (Jamie vs Dev2)
+
+1. Start the dev server and dashboard:
+   ```bash
+   npm run dev
+   ```
+2. Open **[http://localhost:5173](http://localhost:5173)** in your browser.
+
+3. **In Terminal 1 (You as Jamie):**
+   ```bash
+   node cli.mjs Jamie
+   ```
+   Type:
+   ```
+   claim src/auth.ts "Refactoring user authentication"
+   ```
+   *Watch your active lock card with live 15-minute countdown appear instantly on the dashboard!*
+
+4. **In Terminal 2 (Second Agent Dev2):**
+   ```bash
+   node cli.mjs Dev2
+   ```
+   Now attempt to touch the same file:
+   ```
+   claim src/auth.ts "Trying to edit the same file"
+   ```
+   *Terminal 2 will output `❌ COLLISION BLOCKED!` and your browser will flash a real-time red warning banner!*
+
+5. **Broadcast & Lock Release:**
+   - In Terminal 1 (Jamie), broadcast an architectural note:
+     ```
+     broadcast "Switching auth to JWT Bearer tokens"
+     ```
+   - In Terminal 1 (Jamie), release the file when done:
+     ```
+     release src/auth.ts
+     ```
+   - In Terminal 2 (Dev2), retry claiming:
+     ```
+     claim src/auth.ts "Now I can edit it safely"
+     ```
+     *Success! Ownership transfers cleanly with zero conflicts.*
+
+---
+
+### Option B: Automated Multi-Agent Arena
+
+Run the timed simulation arena to watch a multi-agent drama between Claude, Cursor, and Codex:
+```bash
+node live-arena.mjs
+```
 
 ---
 
@@ -178,8 +260,6 @@ BranchLock daemon includes built-in webhook handlers with HMAC SHA-256 signature
 - `POST /api/webhooks/linear` (verified against `LINEAR_WEBHOOK_SECRET`)
 
 ### Setup with Local Tunnel (ngrok)
-
-To test webhooks locally:
 
 ```bash
 # Start your local daemon
