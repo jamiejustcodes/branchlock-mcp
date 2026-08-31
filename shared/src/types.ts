@@ -8,6 +8,7 @@ export interface Lock {
   expires_at: string;
   last_heartbeat_at: string;
   status: 'active' | 'released';
+  issue_id?: string;
 }
 
 // ─── Audit Log Entry ──────────────────────────────────────────
