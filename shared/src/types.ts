@@ -38,6 +38,7 @@ export type EventType =
   | 'ttl_expired';
 
 export interface WSEvent {
+  id: string;
   type: EventType;
   data: Record<string, unknown>;
   timestamp: string;

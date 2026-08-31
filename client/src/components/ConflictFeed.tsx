@@ -130,7 +130,7 @@ export function ConflictFeed({ events, showHeartbeats = false }: ConflictFeedPro
     <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
       {filtered.map((event, i) => (
         <div
-          key={`${event.timestamp}-${i}`}
+          key={event.id || `${event.type}-${event.timestamp}-${i}`}
           className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${getEventColor(
             event.type
           )} animate-slide-in`}

@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
+import { v4 as uuid } from 'uuid';
 import type { WSEvent, EventType } from '@branchlock/shared';
 
 let wss: WebSocketServer;
@@ -24,6 +25,7 @@ export function initWebSocket(server: Server): WebSocketServer {
 
     // Send a welcome event so the client knows it's connected
     const welcome: WSEvent = {
+      id: uuid(),
       type: 'lock_claimed',
       data: { message: 'Connected to BranchLock daemon' },
       timestamp: new Date().toISOString(),
@@ -42,6 +44,7 @@ export function broadcast(type: EventType, data: Record<string, unknown>): void 
   if (!wss) return;
 
   const event: WSEvent = {
+    id: uuid(),
     type,
     data,
     timestamp: new Date().toISOString(),
